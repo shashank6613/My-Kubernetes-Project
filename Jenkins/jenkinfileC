@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+
+    environment {
+        CLUSTER_NAME = 'proj-clus'
+        REGION = 'us-east-1'
+    }
+
+    stages {
+        stage('Trigger Jenkinsfile-1 (EKS Cluster Creation)') {
+            steps {
+                echo "Triggering Jenkinsfile-1 to create EKS cluster..."
+                build job: 'Create-EKS-Cluster', wait: true, parameters: [
+                    string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
+                    string(name: 'REGION', value: REGION)
+                ]
+            }
+        }
+
+        stage('Wait for Cluster to be Ready') {
+            steps {
+                echo "Waiting for the EKS cluster to be active..."
+                // You can add a wait logic here or ensure Jenkinsfile-2 handles cluster readiness.
+            }
+        }
+
+        stage('Trigger Jenkinsfile-2 (Deploy to EKS)') {
+            steps {
+                echo "Triggering Jenkinsfile-2 to deploy the application to EKS..."
+                build job: 'Deploy-OnEKS-Cluster', wait: true, parameters: [
+                    string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
+                    string(name: 'REGION', value: REGION)
+                ]
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✨ Deployment process completed successfully!"
+        }
+        failure {
+            echo "❌ Process failed, cleaning up."
+        }
+    }
+}
