@@ -1,0 +1,153 @@
+pipeline {
+    agent any
+
+    environment {
+        FRONTEND_IMAGE_NAME = 'shashank9928/linkproj-fe'
+        BACKEND_IMAGE_NAME = 'shashank9928/linkproj-be'
+        DOCKER_CREDENTIALS_ID = 'dock-creds'
+        FRONTEND_DEPLOYMENT_FILE = 'k8s/manifests/frontend-deployment.yaml'
+        BACKEND_DEPLOYMENT_FILE = 'k8s/manifests/backend-deployment.yaml'
+        FRONTEND_DIR = 'frontend'
+        BACKEND_DIR = 'backend'
+        CLUSTER_NAME = 'proj-clus'
+        REGION = 'us-east-1'
+    }
+
+    stages {
+        stage('Wait for EKS Cluster Readiness') {
+            steps {
+                script {
+                    echo "Checking if EKS cluster '${CLUSTER_NAME}' is ACTIVE..."
+                    timeout(time: 15, unit: 'MINUTES') {
+                        waitUntil {
+                            def status = sh(
+                                script: """
+                                    aws eks describe-cluster \
+                                        --name ${CLUSTER_NAME} \
+                                        --region ${REGION} \
+                                        --query 'cluster.status' \
+                                        --output text
+                                """,
+                                returnStdout: true
+                            ).trim()
+                            echo "EKS Cluster status: ${status}"
+                            return status == "ACTIVE"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Checkout Source') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Node.js and npm if Missing') {
+            steps {
+                script {
+                    def npmInstalled = sh(script: 'npm -v', returnStatus: true) == 0
+                    if (!npmInstalled) {
+                        sh '''
+                            curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+                            sudo apt-get install -y nodejs
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Build Frontend') {
+            steps {
+                dir("${FRONTEND_DIR}") {
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
+            }
+        }
+
+        stage('Build Backend') {
+            steps {
+                dir("${BACKEND_DIR}") {
+                    sh 'npm install'
+                }
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                script {
+                    def buildId = "${BUILD_NUMBER}"
+                    docker.build("${FRONTEND_IMAGE_NAME}:${buildId}", "-f ${FRONTEND_DIR}/Dockerfile ./${FRONTEND_DIR}")
+                    docker.build("${BACKEND_IMAGE_NAME}:${buildId}", "-f ${BACKEND_DIR}/Dockerfile ./${BACKEND_DIR}")
+                }
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                script {
+                    def buildId = "${BUILD_NUMBER}"
+                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS_ID}") {
+                        docker.image("${FRONTEND_IMAGE_NAME}:${buildId}").push()
+                        docker.image("${BACKEND_IMAGE_NAME}:${buildId}").push()
+                    }
+                }
+            }
+        }
+
+        stage('Update Kubernetes Deployment Manifests') {
+            steps {
+                script {
+                    def buildId = "${BUILD_NUMBER}"
+
+                    // Update the image in frontend deployment YAML
+                    def frontendDockerImage = "${FRONTEND_IMAGE_NAME}:${buildId}"
+                    sh """
+                        sed -i "s|image: .*|image: ${frontendDockerImage}|" ${WORKSPACE}/k8s/manifests/frontend-deployment.yaml
+                        cat k8s/manifests/frontend-deployment.yaml
+                    """
+
+                    // Update the image in backend deployment YAML
+                    def backendDockerImage = "${BACKEND_IMAGE_NAME}:${buildId}"
+                    sh """
+                        sed -i "s|image: .*|image: ${backendDockerImage}|" ${WORKSPACE}/k8s/manifests/backend-deployment.yaml
+                        cat k8s/manifests/backend-deployment.yaml
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to EKS via kubectl') {
+            steps {
+                withAWS(credentials: 'aws-creds', region: "${REGION}") {
+                    script {
+                        echo "Configuring kubeconfig and deploying to EKS using kubectl..."
+                        sh """
+                            aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION}
+                            kubectl apply -f ${WORKSPACE}/${FRONTEND_DEPLOYMENT_FILE}
+                            kubectl apply -f ${WORKSPACE}/${BACKEND_DEPLOYMENT_FILE}
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Application deployed successfully to EKS!"
+        }
+        failure {
+            echo "❌ Deployment failed. Cleaning up Docker images..."
+            script {
+                def buildId = "${BUILD_NUMBER}"
+                sh """
+                    docker rmi ${FRONTEND_IMAGE_NAME}:${buildId} || true
+                    docker rmi ${BACKEND_IMAGE_NAME}:${buildId} || true
+                """
+            }
+        }
+    }
+}
