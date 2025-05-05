@@ -1,4 +1,4 @@
-pipeline {
+pipeline { 
     agent any
 
     environment {
@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Trigger Jenkinsfile-1 (EKS Cluster Creation)') {
             steps {
-                echo "Triggering Jenkinsfile-1 to create EKS cluster..."
+                echo "🚀 Triggering Jenkinsfile-1 to create EKS cluster..."
                 build job: 'Create-EKS-Cluster', wait: true, parameters: [
                     string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
                     string(name: 'REGION', value: REGION)
@@ -17,16 +17,31 @@ pipeline {
             }
         }
 
-        stage('Wait for Cluster to be Ready') {
+        stage('Wait for EKS Cluster to Become ACTIVE') {
             steps {
-                echo "Waiting for the EKS cluster to be active..."
-                // You can add a wait logic here or ensure Jenkinsfile-2 handles cluster readiness.
+                echo "🔍 Waiting for EKS cluster '${CLUSTER_NAME}' to become ACTIVE..."
+                timeout(time: 15, unit: 'MINUTES') {
+                    waitUntil {
+                        def status = sh(
+                            script: """
+                                aws eks describe-cluster \
+                                    --name ${CLUSTER_NAME} \
+                                    --region ${REGION} \
+                                    --query 'cluster.status' \
+                                    --output text
+                            """,
+                            returnStdout: true
+                        ).trim()
+                        echo "EKS Cluster status: ${status}"
+                        return status == "ACTIVE"
+                    }
+                }
             }
         }
 
-        stage('Trigger Jenkinsfile-2 (Deploy to EKS)') {
+        stage('Trigger Jenkinsfile-2 (Build & Update Manifests)') {
             steps {
-                echo "Triggering Jenkinsfile-2 to deploy the application to EKS..."
+                echo "🛠️ Triggering Jenkinsfile-2 to build app and update manifests..."
                 build job: 'Deploy-OnEKS-Cluster', wait: true, parameters: [
                     string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
                     string(name: 'REGION', value: REGION)
@@ -37,10 +52,10 @@ pipeline {
 
     post {
         success {
-            echo "✨ Deployment process completed successfully!"
+            echo "✅ All stages completed successfully. ArgoCD will deploy from updated manifests."
         }
         failure {
-            echo "❌ Process failed, cleaning up."
+            echo "❌ Pipeline failed. Check logs and resolve issues."
         }
     }
 }
