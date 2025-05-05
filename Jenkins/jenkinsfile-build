@@ -17,7 +17,7 @@ pipeline {
         stage('Wait for EKS Cluster Readiness') {
             steps {
                 script {
-                    echo "Checking if EKS cluster '${CLUSTER_NAME}' is ACTIVE..."
+                    echo "🔍 Checking if EKS cluster '${CLUSTER_NAME}' is ACTIVE..."
                     timeout(time: 15, unit: 'MINUTES') {
                         waitUntil {
                             def status = sh(
@@ -75,20 +75,13 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images') {
+        stage('Build & Push Docker Images') {
             steps {
                 script {
                     def buildId = "${BUILD_NUMBER}"
                     docker.build("${FRONTEND_IMAGE_NAME}:${buildId}", "-f ${FRONTEND_DIR}/Dockerfile ./${FRONTEND_DIR}")
                     docker.build("${BACKEND_IMAGE_NAME}:${buildId}", "-f ${BACKEND_DIR}/Dockerfile ./${BACKEND_DIR}")
-                }
-            }
-        }
 
-        stage('Push Docker Images') {
-            steps {
-                script {
-                    def buildId = "${BUILD_NUMBER}"
                     docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS_ID}") {
                         docker.image("${FRONTEND_IMAGE_NAME}:${buildId}").push()
                         docker.image("${BACKEND_IMAGE_NAME}:${buildId}").push()
@@ -101,35 +94,19 @@ pipeline {
             steps {
                 script {
                     def buildId = "${BUILD_NUMBER}"
-
-                    // Update the image in frontend deployment YAML
                     def frontendDockerImage = "${FRONTEND_IMAGE_NAME}:${buildId}"
-                    sh """
-                        sed -i "s|image: .*|image: ${frontendDockerImage}|" ${WORKSPACE}/k8s/manifests/frontend-deployment.yaml
-                        cat k8s/manifests/frontend-deployment.yaml
-                    """
-
-                    // Update the image in backend deployment YAML
                     def backendDockerImage = "${BACKEND_IMAGE_NAME}:${buildId}"
-                    sh """
-                        sed -i "s|image: .*|image: ${backendDockerImage}|" ${WORKSPACE}/k8s/manifests/backend-deployment.yaml
-                        cat k8s/manifests/backend-deployment.yaml
-                    """
-                }
-            }
-        }
 
-        stage('Deploy to EKS via kubectl') {
-            steps {
-                withAWS(credentials: 'aws-creds', region: "${REGION}") {
-                    script {
-                        echo "Configuring kubeconfig and deploying to EKS using kubectl..."
-                        sh """
-                            aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION}
-                            kubectl apply -f ${WORKSPACE}/${FRONTEND_DEPLOYMENT_FILE}
-                            kubectl apply -f ${WORKSPACE}/${BACKEND_DEPLOYMENT_FILE}
-                        """
-                    }
+                    sh """
+                        sed -i "s|image: .*linkproj-fe:.*|image: ${frontendDockerImage}|" ${FRONTEND_DEPLOYMENT_FILE}
+                        sed -i "s|image: .*linkproj-be:.*|image: ${backendDockerImage}|" ${BACKEND_DEPLOYMENT_FILE}
+
+                        git config user.email "jenkins@yourdomain.com"
+                        git config user.name "Jenkins CI"
+                        git add ${FRONTEND_DEPLOYMENT_FILE} ${BACKEND_DEPLOYMENT_FILE}
+                        git commit -m "Update image tags to build ${buildId}"
+                        git push origin HEAD:main
+                    """
                 }
             }
         }
@@ -137,10 +114,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Application deployed successfully to EKS!"
+            echo "✅ EKS cluster exists and manifests updated in Git. ArgoCD will handle deployment."
         }
         failure {
-            echo "❌ Deployment failed. Cleaning up Docker images..."
+            echo "❌ Pipeline failed. Cleaning up Docker images..."
             script {
                 def buildId = "${BUILD_NUMBER}"
                 sh """
