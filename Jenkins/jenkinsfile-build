@@ -18,21 +18,24 @@ pipeline {
             steps {
                 script {
                     echo "🔍 Checking if EKS cluster '${CLUSTER_NAME}' is ACTIVE..."
-                    timeout(time: 15, unit: 'MINUTES') {
-                        waitUntil {
-                            def status = sh(
-                                script: """
-                                    aws eks describe-cluster \
-                                        --name ${CLUSTER_NAME} \
-                                        --region ${REGION} \
-                                        --query 'cluster.status' \
-                                        --output text
-                                """,
-                                returnStdout: true
-                            ).trim()
-                            echo "EKS Cluster status: ${status}"
-                            return status == "ACTIVE"
-                        }
+
+                    withAWS(credentials: 'aws-creds', region: "${REGION}") {
+                        timeout(time: 15, unit: 'MINUTES') {
+                            waitUntil {
+                                def status = sh(
+                                     script: """
+                                        aws eks describe-cluster \
+                                            --name ${CLUSTER_NAME} \
+                                            --region ${REGION} \
+                                            --query 'cluster.status' \
+                                            --output text
+                                    """,
+                                    returnStdout: true
+                                ).trim()
+                                echo "EKS Cluster status: ${status}"
+                                return status == "ACTIVE"
+                            }
+                       }
                     }
                 }
             }
