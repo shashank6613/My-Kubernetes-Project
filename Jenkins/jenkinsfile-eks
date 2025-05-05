@@ -34,7 +34,7 @@ pipeline {
         success {
             echo "EKS Cluster creation successful!"
             // Trigger the deployment pipeline (Jenkinsfile-2)
-            build job: 'Deploy-OnEKS-Cluster', wait: true, parameters: [
+            build job: 'Build-for-EKS-Cluster', wait: true, parameters: [
                 string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
                 string(name: 'REGION', value: REGION)
             ]
