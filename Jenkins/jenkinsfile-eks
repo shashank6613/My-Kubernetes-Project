@@ -10,35 +10,48 @@ pipeline {
     stages {
         stage('Create EKS Cluster') {
             steps {
-                withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: "${REGION}") {
-                    script {
-                        sh '''
-                            eksctl create cluster \
-                                --name ${CLUSTER_NAME} \
-                                --version 1.30 \
-                                --region ${REGION} \
-                                --nodegroup-name stand-work \
-                                --node-type t3.medium \
-                                --nodes 1 \
-                                --nodes-min 1 \
-                                --nodes-max 1 \
-                                --managed
-                        '''
+                script {
+                    // Catch any error and set build result to FAILURE without stopping the pipeline
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: "${REGION}") {
+                            sh """
+                                set -e
+                                eksctl create cluster \
+                                    --name ${CLUSTER_NAME} \
+                                    --version 1.30 \
+                                    --region ${REGION} \
+                                    --nodegroup-name stand-work \
+                                    --node-type t3.medium \
+                                    --nodes 1 \
+                                    --nodes-min 1 \
+                                    --nodes-max 1 \
+                                    --managed
+                            """
+                        }
                     }
+                }
+            }
+        }
+
+        stage('Trigger Next Pipeline') {
+            when {
+                expression { currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
+            steps {
+                script {
+                    echo "Triggering Build-for-EKS-Cluster pipeline..."
+                    build job: 'Build-for-EKS-Cluster',
+                        wait: false,
+                        parameters: [
+                            string(name: 'CLUSTER_NAME', value: "${CLUSTER_NAME}"),
+                            string(name: 'REGION', value: "${REGION}")
+                        ]
                 }
             }
         }
     }
 
     post {
-        success {
-            echo "EKS Cluster creation successful!"
-            // Trigger the deployment pipeline (Jenkinsfile-2)
-            build job: 'Build-for-EKS-Cluster', wait: true, parameters: [
-                string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
-                string(name: 'REGION', value: REGION)
-            ]
-        }
         failure {
             echo 'EKS cluster creation failed.'
         }
