@@ -32,23 +32,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Trigger Next Pipeline') {
-            when {
-                expression { currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
-            }
-            steps {
-                script {
-                    echo "Triggering Build-for-EKS-Cluster pipeline..."
-                    build job: 'Build-for-EKS-Cluster',
-                        wait: false,
-                        parameters: [
-                            string(name: 'CLUSTER_NAME', value: "${CLUSTER_NAME}"),
-                            string(name: 'REGION', value: "${REGION}")
-                        ]
-                }
-            }
-        }
     }
 
     post {
