@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         AWS_CREDENTIALS_ID = 'aws-creds'
-        CLUSTER_NAME = 'proj-clus'
+        CLUSTER_NAME = 'app-clus'
         REGION = 'us-west-2'
     }
 
