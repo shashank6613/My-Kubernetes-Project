@@ -9,8 +9,8 @@ pipeline {
         BACKEND_DEPLOYMENT_FILE = 'k8s/manifests/backend-deployment.yaml'
         FRONTEND_DIR = 'frontend'
         BACKEND_DIR = 'backend'
-        CLUSTER_NAME = 'proj-clus'
-        REGION = 'us-east-1'
+        CLUSTER_NAME = 'app-clus'
+        REGION = 'us-west-2'
     }
 
     stages {
