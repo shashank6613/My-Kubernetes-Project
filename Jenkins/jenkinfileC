@@ -1,4 +1,4 @@
-pipeline { 
+pipeline {
     agent any
 
     environment {
@@ -7,60 +7,53 @@ pipeline {
     }
 
     stages {
-        stage('Trigger Jenkinsfile-1 (EKS Cluster Creation)') {
-            steps {
-                echo "🚀 Triggering Jenkinsfile-1 to create EKS cluster..."
-                build job: 'Create-EKS-Cluster', wait: true, parameters: [
-                    string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
-                    string(name: 'REGION', value: REGION)
-                ]
-            }
-        }
-
-        stage('Wait for EKS Cluster to Become ACTIVE') {
+        stage('Trigger Create-EKS-Cluster') {
             steps {
                 script {
-                    echo "🔍 Waiting for EKS cluster '${CLUSTER_NAME}' to become ACTIVE..."
+                    echo "Triggering Create-EKS-Cluster job..."
+                    def result1 = build job: 'Create-EKS-Cluster',
+                        wait: true,
+                        parameters: [
+                            string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
+                            string(name: 'REGION', value: REGION)
+                        ]
 
-                    withAWS(credentials: 'aws-creds', region: "${REGION}") {
-                        timeout(time: 15, unit: 'MINUTES') {
-                            waitUntil {
-                                def status = sh(
-                                    script: """
-                                        aws eks describe-cluster \
-                                            --name ${CLUSTER_NAME} \
-                                            --region ${REGION} \
-                                            --query 'cluster.status' \
-                                            --output text
-                                    """,
-                                    returnStdout: true
-                                ).trim()
-                                echo "EKS Cluster status: ${status}"
-                                return (status == "ACTIVE")
-                            }
-                        }
+                    if (result1.result != 'SUCCESS') {
+                        error("❌ Create-EKS-Cluster job failed.")
+                    } else {
+                        echo "✅ Create-EKS-Cluster completed successfully."
                     }
                 }
             }
         }
 
-        stage('Trigger Jenkinsfile-2 (Build & Update Manifests)') {
+        stage('Trigger Build-for-EKS-Cluster') {
             steps {
-                echo "🛠️ Triggering Jenkinsfile-2 to build app and update manifests..."
-                build job: 'Build-for-EKS-Cluster', wait: true, parameters: [
-                    string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
-                    string(name: 'REGION', value: REGION)
-                ]
+                script {
+                    echo "Triggering Build-for-EKS-Cluster job..."
+                    def result2 = build job: 'Build-for-EKS-Cluster',
+                        wait: true,
+                        parameters: [
+                            string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
+                            string(name: 'REGION', value: REGION)
+                        ]
+
+                    if (result2.result != 'SUCCESS') {
+                        error("❌ Build-for-EKS-Cluster job failed.")
+                    } else {
+                        echo "✅ Build-for-EKS-Cluster completed successfully."
+                    }
+                }
             }
         }
     }
 
     post {
         success {
-            echo "✅ All stages completed successfully. ArgoCD will deploy from updated manifests."
+            echo '🎉 Controller pipeline completed successfully.'
         }
         failure {
-            echo "❌ Pipeline failed. Check logs and resolve issues."
+            echo '💥 Controller pipeline failed due to a job error.'
         }
     }
 }
