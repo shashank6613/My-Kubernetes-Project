@@ -19,23 +19,25 @@ pipeline {
 
         stage('Wait for EKS Cluster to Become ACTIVE') {
             steps {
-                echo "🔍 Waiting for EKS cluster '${CLUSTER_NAME}' to become ACTIVE..."
+                script {
+                    echo "🔍 Waiting for EKS cluster '${CLUSTER_NAME}' to become ACTIVE..."
 
-                withAWS(credentials: 'aws-creds', region: "${REGION}") {
-                    timeout(time: 15, unit: 'MINUTES') {
-                        waitUntil {
-                            def status = sh(
-                                script: """
-                                    aws eks describe-cluster \
-                                        --name ${CLUSTER_NAME} \
-                                        --region ${REGION} \
-                                        --query 'cluster.status' \
-                                        --output text
-                                """,
-                                returnStdout: true
-                            ).trim()
-                            echo "EKS Cluster status: ${status}"
-                            return status == "ACTIVE"
+                    withAWS(credentials: 'aws-creds', region: "${REGION}") {
+                        timeout(time: 15, unit: 'MINUTES') {
+                            waitUntil {
+                                def status = sh(
+                                    script: """
+                                        aws eks describe-cluster \
+                                            --name ${CLUSTER_NAME} \
+                                            --region ${REGION} \
+                                            --query 'cluster.status' \
+                                            --output text
+                                    """,
+                                    returnStdout: true
+                                ).trim()
+                                echo "EKS Cluster status: ${status}"
+                                return (status == "ACTIVE")
+                            }
                         }
                     }
                 }
