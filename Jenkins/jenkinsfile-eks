@@ -8,25 +8,41 @@ pipeline {
     }
 
     stages {
-        stage('Create EKS Cluster') {
+        stage('Create EKS Cluster (If Not Exists)') {
             steps {
                 script {
-                    // Catch any error and set build result to FAILURE without stopping the pipeline
                     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                         withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: "${REGION}") {
-                            sh """
-                                set -e
-                                eksctl create cluster \
-                                    --name ${CLUSTER_NAME} \
-                                    --version 1.30 \
-                                    --region ${REGION} \
-                                    --nodegroup-name stand-work \
-                                    --node-type t3.medium \
-                                    --nodes 1 \
-                                    --nodes-min 1 \
-                                    --nodes-max 1 \
-                                    --managed
-                            """
+                            echo "🔍 Checking if EKS cluster '${CLUSTER_NAME}' already exists..."
+                            def clusterStatus = sh(
+                                script: """
+                                    aws eks describe-cluster \
+                                        --name ${CLUSTER_NAME} \
+                                        --region ${REGION} \
+                                        --query 'cluster.status' \
+                                        --output text || echo "NOTFOUND"
+                                """,
+                                returnStdout: true
+                            ).trim()
+
+                            if (clusterStatus == "ACTIVE" || clusterStatus == "CREATING") {
+                                echo "✅ Cluster '${CLUSTER_NAME}' already exists with status: ${clusterStatus}"
+                            } else {
+                                echo "🚀 Cluster not found. Creating new EKS cluster..."
+                                sh """
+                                    set -e
+                                    eksctl create cluster \
+                                        --name ${CLUSTER_NAME} \
+                                        --version 1.30 \
+                                        --region ${REGION} \
+                                        --nodegroup-name stand-work \
+                                        --node-type t3.medium \
+                                        --nodes 1 \
+                                        --nodes-min 1 \
+                                        --nodes-max 1 \
+                                        --managed
+                                """
+                            }
                         }
                     }
                 }
@@ -35,8 +51,11 @@ pipeline {
     }
 
     post {
+        success {
+            echo '✅ EKS cluster creation job completed (or already existed).'
+        }
         failure {
-            echo 'EKS cluster creation failed.'
+            echo '❌ EKS cluster creation job failed.'
         }
     }
 }
