@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        CLUSTER_NAME = 'app-clus'
-        REGION = 'us-west-2'
+        CLUSTER_NAME = 'proj-clus'
+        REGION = 'us-east-1'
     }
 
     stages {
@@ -20,20 +20,23 @@ pipeline {
         stage('Wait for EKS Cluster to Become ACTIVE') {
             steps {
                 echo "🔍 Waiting for EKS cluster '${CLUSTER_NAME}' to become ACTIVE..."
-                timeout(time: 15, unit: 'MINUTES') {
-                    waitUntil {
-                        def status = sh(
-                            script: """
-                                aws eks describe-cluster \
-                                    --name ${CLUSTER_NAME} \
-                                    --region ${REGION} \
-                                    --query 'cluster.status' \
-                                    --output text
-                            """,
-                            returnStdout: true
-                        ).trim()
-                        echo "EKS Cluster status: ${status}"
-                        return status == "ACTIVE"
+
+                withAWS(credentials: 'aws-creds', region: "${REGION}") {
+                    timeout(time: 15, unit: 'MINUTES') {
+                        waitUntil {
+                            def status = sh(
+                                script: """
+                                    aws eks describe-cluster \
+                                        --name ${CLUSTER_NAME} \
+                                        --region ${REGION} \
+                                        --query 'cluster.status' \
+                                        --output text
+                                """,
+                                returnStdout: true
+                            ).trim()
+                            echo "EKS Cluster status: ${status}"
+                            return status == "ACTIVE"
+                        }
                     }
                 }
             }
@@ -42,7 +45,7 @@ pipeline {
         stage('Trigger Jenkinsfile-2 (Build & Update Manifests)') {
             steps {
                 echo "🛠️ Triggering Jenkinsfile-2 to build app and update manifests..."
-                build job: 'Deploy-OnEKS-Cluster', wait: true, parameters: [
+                build job: 'Build-for-EKS-Cluster', wait: true, parameters: [
                     string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
                     string(name: 'REGION', value: REGION)
                 ]
