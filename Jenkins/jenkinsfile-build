@@ -100,16 +100,18 @@ pipeline {
                     def frontendDockerImage = "${FRONTEND_IMAGE_NAME}:${buildId}"
                     def backendDockerImage = "${BACKEND_IMAGE_NAME}:${buildId}"
 
-                    sh """
-                        sed -i "s|image: .*linkproj-fe:.*|image: ${frontendDockerImage}|" ${FRONTEND_DEPLOYMENT_FILE}
-                        sed -i "s|image: .*linkproj-be:.*|image: ${backendDockerImage}|" ${BACKEND_DEPLOYMENT_FILE}
+                    withCredentials([usernamePassword(credentialsId: 'git-creds', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                        sh """
+                            sed -i "s|image: .*linkproj-fe:.*|image: ${frontendDockerImage}|" ${FRONTEND_DEPLOYMENT_FILE}
+                            sed -i "s|image: .*linkproj-be:.*|image: ${backendDockerImage}|" ${BACKEND_DEPLOYMENT_FILE}
 
-                        git config user.email "jenkins@yourdomain.com"
-                        git config user.name "Jenkins CI"
-                        git add ${FRONTEND_DEPLOYMENT_FILE} ${BACKEND_DEPLOYMENT_FILE}
-                        git commit -m "Update image tags to build ${buildId}"
-                        git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/shashank6613/My-Kubernetes-Project.git HEAD:master
-                    """
+                            git config user.email "jenkins@mail.com"
+                            git config user.name "Jenkins CI"
+                            git add ${FRONTEND_DEPLOYMENT_FILE} ${BACKEND_DEPLOYMENT_FILE}
+                            git commit -m "Update image tags to build ${buildId}"
+                            git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/shashank6613/My-Kubernetes-Project.git HEAD:master
+                        """
+                    }
                 }
             }
         }
