@@ -108,7 +108,7 @@ pipeline {
                         git config user.name "Jenkins CI"
                         git add ${FRONTEND_DEPLOYMENT_FILE} ${BACKEND_DEPLOYMENT_FILE}
                         git commit -m "Update image tags to build ${buildId}"
-                        git push origin HEAD:master
+                        git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/shashank6613/My-Kubernetes-Project.git HEAD:master
                     """
                 }
             }
