@@ -37,9 +37,9 @@ pipeline {
                                         --region ${REGION} \
                                         --nodegroup-name stand-work \
                                         --node-type t3.medium \
-                                        --nodes 1 \
-                                        --nodes-min 1 \
-                                        --nodes-max 1 \
+                                        --nodes 2 \
+                                        --nodes-min 2 \
+                                        --nodes-max 3 \
                                         --managed
                                 """
                             }
