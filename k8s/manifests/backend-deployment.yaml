@@ -39,11 +39,13 @@ kind: Service
 metadata:
   name: backend-service
   namespace: default
+  labels:
+    app: backend
 spec:
   selector:
     app: backend
   ports:
-    - port: 5000
+    - name: http
+      port: 5000
       targetPort: 5000
-      nodePort: 30088
-  type: NodePort
+  type: ClusterIP
