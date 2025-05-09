@@ -25,7 +25,10 @@ spec:
             - name: DB_USER
               value: "shank"
             - name: DB_PASS
-              value: "${DBPASS}"
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DBPASS
             - name: DB_NAME
               value: "primarydb"
             - name: READ_REPLICA_HOST
