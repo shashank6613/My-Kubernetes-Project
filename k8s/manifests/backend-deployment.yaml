@@ -25,7 +25,7 @@ spec:
             - name: DB_USER
               value: "shank"
             - name: DB_PASS
-              value: "admin12345"
+              value: "${DBPASS}"
             - name: DB_NAME
               value: "primarydb"
             - name: READ_REPLICA_HOST
