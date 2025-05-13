@@ -1,0 +1,59 @@
+server:
+  service:
+    type: ClusterIP
+alertmanager:
+  service:
+    type: ClusterIP
+grafana:
+  service:
+    type: ClusterIP
+grafana:
+  adminPasswordKey: admin-password
+  adminPasswordSecret: grafana-admin-password
+serviceMonitors:
+  - name: backend-metrics
+    namespace: default
+    selector:
+      matchLabels:
+        app: backend
+    endpoints:
+      - port: http
+        path: /metrics
+        interval: 15s
+
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: '****' change to <External-IP>
+      paths:
+        - path: /prometheus(/|$)(.*)
+          pathType: Prefix
+          backend:
+            service:
+              name: prometheus-server
+              port:
+                number: 9090
+        - path: /alertmanager(/|$)(.*)
+          pathType: Prefix
+          backend:
+            service:
+              name: alertmanager
+              port:
+                number: 9093
+        - path: /grafana(/|$)(.*)
+          pathType: Prefix
+          backend:
+            service:
+              name: grafana
+              port:
+                number: 3000
+        - path: /argocd(/|$)(.*)
+          pathType: Prefix
+          backend:
+            service:
+              name: argocd-server
+              port:
+                number: 80
