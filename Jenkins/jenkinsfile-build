@@ -41,6 +41,46 @@ pipeline {
             }
         }
 
+        stage('Update kubeconfig') {
+            steps {
+                script {
+                    echo "🔄 Updating kubeconfig for EKS cluster '${CLUSTER_NAME}'..."
+
+                    withAWS(credentials: 'aws-creds', region: "${REGION}") {
+                        sh """
+                            aws eks update-kubeconfig \
+                                --name ${CLUSTER_NAME} \
+                                --region ${REGION} \
+                                --alias ${CLUSTER_NAME}
+                        """
+                        echo "✅ kubeconfig updated successfully."
+                    }
+
+                    // Verification step
+                    echo "🔍 Verifying kubeconfig update..."
+                    def contextCheck = sh(
+                        script: """
+                            kubectl config current-context | grep ${CLUSTER_NAME}
+                        """,
+                        returnStatus: true
+                    )
+
+                    def nodeCheck = sh(
+                        script: """
+                            kubectl get nodes --context=${CLUSTER_NAME}
+                        """,
+                        returnStatus: true
+                    )
+
+                    if (contextCheck != 0 || nodeCheck != 0) {
+                        error("❌ Failed to update kubeconfig or connect to the cluster. Please check your configuration.")
+                    } else {
+                        echo "✅ kubeconfig verification successful. CLUSTER IS REACHABLE."
+                    }
+                }
+            }
+        }
+
         stage('Checkout Source') {
             steps {
                 checkout scm
