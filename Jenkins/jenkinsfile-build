@@ -167,6 +167,13 @@ pipeline {
                         helm install prometheus prometheus-community/kube-prometheus-stack \
                             --namespace monitoring --create-namespace
                     """
+                    echo "⏳ Waiting for Grafana pod to be running..."
+                    timeout(time: 5, unit: 'MINUTES') {
+                        waitUntil {
+                            sh(script: "kubectl get pods -n monitoring -l app.kubernetes.io/name=grafana --field-selector=status.phase=Running | grep grafana", returnStatus: true) == 0
+                        }
+                    }
+                    echo "✅ Grafana is now running."
                 }
             }
         }
@@ -195,6 +202,13 @@ pipeline {
                             --namespace ingress-nginx --create-namespace \
                             --set controller.publishService.enabled=true
                     """
+                    echo "⏳ Waiting for NGINX Ingress Controller to be ready..."
+                    timeout(time: 5, unit: 'MINUTES') {
+                        waitUntil {
+                            sh(script: "kubectl get pods -n ingress-nginx -l app.kubernetes.io/component=controller --field-selector=status.phase=Running | grep ingress-nginx-controller", returnStatus: true) == 0
+                        }
+                    }
+                    echo "✅ Ingress Controller is now running."
                 }
             }
         }
@@ -203,7 +217,7 @@ pipeline {
                 script {
                     echo "🚀 Deploying unified ingress for ArgoCD and Prometheus..."
                     sh """
-                        kubectl apply -f k8s/ingress/unified-ingress.yaml
+                        kubectl apply -f k8s/ingress/stack-ingress.yaml
                     """
                 }
             }
