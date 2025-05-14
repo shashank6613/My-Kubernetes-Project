@@ -63,14 +63,61 @@ pipeline {
                 }
             }
         }
+
+        stage('Wait for Node Readiness') {
+            steps {
+                script {
+                    echo "⏳ Waiting for EKS nodes to become ready..."
+                    timeout(time: 10, unit: 'MINUTES') {
+                        waitUntil {
+                            def readyNodes = sh(
+                                script: "kubectl get nodes --no-headers | grep 'Ready' | wc -l",
+                                returnStdout: true
+                            ).trim().toInteger()
+                            echo "Nodes Ready: ${readyNodes}"
+                            return readyNodes > 0
+                        }
+                    }
+                    echo "✅ EKS nodes are ready."
+                }
+            }
+        }
+
+        stage('Install ArgoCD') {
+            steps {
+                script {
+                    echo "🚀 Installing ArgoCD using Helm..."
+                    sh """
+                        kubectl create namespace argocd || true
+                        helm repo add argo https://argoproj.github.io/argo-helm
+                        helm repo update
+                        helm install argocd argo/argo-cd \
+                            --namespace argocd \
+                            --set server.service.type=ClusterIP \
+                            --set installCRDs=true
+                    """
+                }
+            }
+        }
+
+        stage('Apply ArgoCD Application') {
+            steps {
+                script {
+                    echo "🚀 Applying ArgoCD Application manifest..."
+                    sh """
+                        kubectl apply -f k8s/argocd/application.yaml -n argocd
+                    """
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo '✅ EKS cluster creation job completed (or already existed).'
+            echo '✅ EKS cluster creation, ArgoCD installation, and application deployment completed (or already existed).'
         }
         failure {
-            echo '❌ EKS cluster creation job failed.'
+            echo '❌ EKS cluster creation or ArgoCD installation job failed.'
         }
     }
 }
