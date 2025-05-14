@@ -9,7 +9,7 @@ require('dotenv').config();
 
 const dbHost = process.env.DB_HOST;
 const dbUser = process.env.DB_USER;
-const dbPass = process.env.DB_PASSWORD;
+const dbPass = process.env.DB_PASS;
 
 console.log(dbHost);
 
@@ -45,7 +45,7 @@ const client = new Client({
   host: process.env.DB_HOST || 'postgres',
   port: 5432,
   user: process.env.DB_USER || 'shank',
-  password: process.env.DB_PASSWORD || 'k8admin1234link',
+  password: process.env.DB_PASS || 'k8admin1234link',
   database: process.env.DB_NAME || 'primarydb',
 });
 
