@@ -127,7 +127,7 @@ pipeline {
                         helm repo update
                         helm install prometheus prometheus-community/kube-prometheus-stack \
                           --namespace monitoring --create-namespace \
-                          --set ingress.enabled=false
+                          --set ingress.enabled=true
                     '''
                     echo '⏳ Waiting for Grafana pod...'
                     timeout(time: 5, unit: 'MINUTES') {
