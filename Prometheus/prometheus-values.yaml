@@ -27,7 +27,7 @@ ingress:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
-    - host: '****' change to <External-IP>
+    - host: <External-IP>
       paths:
         - path: /prometheus(/|$)(.*)
           pathType: Prefix
