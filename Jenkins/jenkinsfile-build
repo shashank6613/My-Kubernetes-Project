@@ -5,6 +5,7 @@ pipeline {
         FRONTEND_IMAGE_NAME = 'shashank9928/linkproj-fe'
         BACKEND_IMAGE_NAME = 'shashank9928/linkproj-be'
         DOCKER_CREDENTIALS_ID = 'dock-creds'
+        GRAFANA_PASSWORD_CRED_ID   = 'grafana-admin-pass'
         FRONTEND_DEPLOYMENT_FILE = 'k8s/manifests/frontend-deployment.yaml'
         BACKEND_DEPLOYMENT_FILE = 'k8s/manifests/backend-deployment.yaml'
         FRONTEND_DIR = 'frontend'
@@ -152,6 +153,58 @@ pipeline {
                             git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/shashank6613/My-Kubernetes-Project.git HEAD:master
                         """
                     }
+                }
+            }
+        }
+
+        stage('Install Prometheus Monitoring Stack') {
+            steps {
+                script {
+                    echo "🚀 Installing Prometheus monitoring via Helm..."
+                    sh """
+                        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+                        helm repo update
+                        helm install prometheus prometheus-community/kube-prometheus-stack \
+                            --namespace monitoring --create-namespace
+                    """
+                }
+            }
+        }
+
+        stage('Configure Grafana Admin Password') {
+            steps {
+                withCredentials([string(credentialsId: "${GRAFANA_PASSWORD_CRED_ID}", variable: 'GRAFANA_PASSWORD')]) {
+                    echo "🔐 Creating Grafana admin password secret from Jenkins credentials..."
+                    sh """
+                        kubectl create secret generic grafana-admin-password \
+                          --from-literal=admin-password=\"${GRAFANA_PASSWORD}\" \
+                          -n monitoring
+                    """
+                }
+            }
+        }
+
+        stage('Install Ingress Controller') {
+            steps {
+                script {
+                    echo "🚀 Installing NGINX Ingress Controller via Helm..."
+                    sh """
+                        helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+                        helm repo update
+                        helm install ingress-nginx ingress-nginx/ingress-nginx \
+                            --namespace ingress-nginx --create-namespace \
+                            --set controller.publishService.enabled=true
+                    """
+                }
+            }
+        }
+        stage('Deploy Unified Ingress') {
+            steps {
+                script {
+                    echo "🚀 Deploying unified ingress for ArgoCD and Prometheus..."
+                    sh """
+                        kubectl apply -f k8s/ingress/unified-ingress.yaml
+                    """
                 }
             }
         }
