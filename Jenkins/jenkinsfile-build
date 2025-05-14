@@ -200,7 +200,8 @@ pipeline {
                         helm repo update
                         helm install ingress-nginx ingress-nginx/ingress-nginx \
                             --namespace ingress-nginx --create-namespace \
-                            --set controller.publishService.enabled=true
+                            --set controller.publishService.enabled=true \
+                            --set controller.service.type=LoadBalancer
                     """
                     echo "⏳ Waiting for NGINX Ingress Controller to be ready..."
                     timeout(time: 5, unit: 'MINUTES') {
