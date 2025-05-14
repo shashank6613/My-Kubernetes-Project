@@ -105,7 +105,7 @@ pipeline {
                 script {
                     echo "🚀 Applying ArgoCD Application manifest..."
                     sh """
-                        kubectl apply -f k8s/argocd/application.yaml -n argocd
+                        kubectl apply -f ArgoCD-config/argo-app.yaml -n argocd
                     """
                 }
             }
