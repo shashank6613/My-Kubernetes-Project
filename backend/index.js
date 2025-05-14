@@ -45,7 +45,7 @@ const client = new Client({
   host: process.env.DB_HOST || 'postgres',
   port: 5432,
   user: process.env.DB_USER || 'shank',
-  password: process.env.DB_PASSWORD || 'admin12345',
+  password: process.env.DB_PASSWORD || 'k8admin1234link',
   database: process.env.DB_NAME || 'primarydb',
 });
 
