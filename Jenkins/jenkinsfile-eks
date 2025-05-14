@@ -8,42 +8,57 @@ pipeline {
     }
 
     stages {
-        stage('Create EKS Cluster (If Not Exists)') {
+        stage('Check for Existing EKS Cluster') {
             steps {
                 script {
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: "${REGION}") {
-                            echo "🔍 Checking if EKS cluster '${CLUSTER_NAME}' already exists..."
-                            def clusterStatus = sh(
-                                script: """
-                                    aws eks describe-cluster \
-                                        --name ${CLUSTER_NAME} \
-                                        --region ${REGION} \
-                                        --query 'cluster.status' \
-                                        --output text || echo "NOTFOUND"
-                                """,
-                                returnStdout: true
-                            ).trim()
+                    echo "🔍 Checking if EKS cluster '${CLUSTER_NAME}' already exists..."
+                    withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: "${REGION}") {
+                        def clusterStatus = sh(
+                            script: """
+                                aws eks describe-cluster \
+                                    --name ${CLUSTER_NAME} \
+                                    --region ${REGION} \
+                                    --query 'cluster.status' \
+                                    --output text || echo "NOTFOUND"
+                            """,
+                            returnStdout: true
+                        ).trim()
 
-                            if (clusterStatus == "ACTIVE" || clusterStatus == "CREATING") {
-                                echo "✅ Cluster '${CLUSTER_NAME}' already exists with status: ${clusterStatus}"
-                            } else {
-                                echo "🚀 Cluster not found. Creating new EKS cluster..."
-                                sh """
-                                    set -e
-                                    eksctl create cluster \
-                                        --name ${CLUSTER_NAME} \
-                                        --version 1.30 \
-                                        --region ${REGION} \
-                                        --nodegroup-name stand-work \
-                                        --node-type t3.medium \
-                                        --nodes 2 \
-                                        --nodes-min 2 \
-                                        --nodes-max 3 \
-                                        --managed
-                                """
-                            }
+                        if (clusterStatus == "ACTIVE" || clusterStatus == "CREATING") {
+                            echo "✅ Cluster '${CLUSTER_NAME}' already exists with status: ${clusterStatus}"
+                            currentBuild.result = 'SUCCESS'
+                            return
+                        } else {
+                            echo "🚀 Cluster not found. Proceeding to creation..."
                         }
+                    }
+                }
+            }
+        }
+
+        stage('Create EKS Cluster') {
+            when {
+                expression {
+                    currentBuild.result != 'SUCCESS'
+                }
+            }
+            steps {
+                script {
+                    withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: "${REGION}") {
+                        echo "🚀 Creating new EKS cluster..."
+                        sh """
+                            set -e
+                            eksctl create cluster \
+                                --name ${CLUSTER_NAME} \
+                                --version 1.30 \
+                                --region ${REGION} \
+                                --nodegroup-name stand-work \
+                                --node-type t3.medium \
+                                --nodes 2 \
+                                --nodes-min 2 \
+                                --nodes-max 3 \
+                                --managed
+                        """
                     }
                 }
             }
