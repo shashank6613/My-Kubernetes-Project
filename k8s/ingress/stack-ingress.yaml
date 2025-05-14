@@ -38,4 +38,12 @@ spec:
               service:
                 name: argocd-server
                 port:
-                  number: 80        
+                  number: 80
+          - path: /  # Frontend app at root path '/'
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend  # Your frontend service name
+                port:
+                  number: 80   # Port your frontend service exposes
+
