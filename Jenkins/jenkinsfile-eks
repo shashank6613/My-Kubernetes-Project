@@ -64,6 +64,20 @@ pipeline {
             }
         }
 
+        stage('Update kubeconfig') {
+            steps {
+                script {
+                    echo "🔄 Updating kubeconfig for EKS cluster '${CLUSTER_NAME}'..."
+                    withAWS(credentials: 'aws-creds', region: REGION) {
+                        sh "aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION} --alias ${CLUSTER_NAME}"
+                        echo '✅ kubeconfig updated successfully.'
+                    }
+                    echo '🔍 Verifying connectivity...'
+                    sh "kubectl get nodes --context=${CLUSTER_NAME}"
+                }
+            }
+        }
+
         stage('Wait for Node Readiness') {
             steps {
                 script {
