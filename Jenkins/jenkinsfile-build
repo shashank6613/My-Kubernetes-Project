@@ -175,6 +175,45 @@ pipeline {
             }
         }
 
+        stage('Update External IP in Ingress Files') {
+            steps {
+                script {
+                    echo "🔍 Fetching External IP from NGINX Ingress..."
+
+                    // Get the external IP
+                    def externalIP = ""
+                    timeout(time: 10, unit: 'MINUTES') {
+                        waitUntil {
+                            externalIP = sh(
+                                script: """
+                                    kubectl get svc ingress-nginx-controller -n ingress-nginx \
+                                    -o jsonpath='{.status.loadBalancer.ingress[0].hostname}{.status.loadBalancer.ingress[0].ip}'
+                                """,
+                                returnStdout: true
+                            ).trim()
+
+                            echo "  ➡️  Current LoadBalancer external IP/hostname: ${externalIP}"
+                            return externalIP != ""
+                        }
+                    }
+
+                    // Update the prometheus-values.yaml file
+                    echo "📄 Updating prometheus-values.yaml with External IP..."
+                    sh """
+                        sed -i "s|host: '.*'|host: '${externalIP}'|" Prometheus/prometheus-values.yaml
+                    """
+
+                    // Update the stack-ingress.yaml file
+                    echo "📄 Updating stack-ingress.yaml with External IP..."
+                    sh """
+                        sed -i "s|host: <External-IP>|host: '${externalIP}'|" k8s/ingress/stack-ingress.yaml
+                    """
+
+                    echo "✅ External IP updated in both prometheus-values.yaml and stack-ingress.yaml"
+                }
+            }
+        }
+
         stage('Deploy Unified Ingress') {
             steps {
                 script {
