@@ -240,6 +240,9 @@ pipeline {
                 def id = BUILD_NUMBER
                 sh "docker rmi ${FRONTEND_IMAGE_NAME}:${id} || true"
                 sh "docker rmi ${BACKEND_IMAGE_NAME}:${id} || true"
+                sh "sudo apt-get purge nodejs libnode72 -y"
+                sh "sudo apt-get autoremove"
+                sh "sudo apt-get update"
             }
         }
     }
