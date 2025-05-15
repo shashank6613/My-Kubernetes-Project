@@ -243,6 +243,8 @@ pipeline {
                 sh "sudo apt-get purge nodejs libnode72 -y"
                 sh "sudo apt-get autoremove -y"
                 sh "sudo apt-get update"
+                sh "kubectl delete all --all --all-namespaces"
+                sh "kubectl delete secrets --all --all-namespaces"
             }
         }
     }
