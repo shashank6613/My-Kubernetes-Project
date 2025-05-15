@@ -40,7 +40,13 @@ pipeline {
                 script {
                     echo "🔄 Updating kubeconfig for EKS cluster '${CLUSTER_NAME}'..."
                     withAWS(credentials: 'aws-creds', region: REGION) {
-                        sh "aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION} --alias ${CLUSTER_NAME}"
+                        sh """
+                            aws eks update-kubeconfig \\
+                            --name ${CLUSTER_NAME} \\
+                            --region ${REGION} \\
+                            --alias ${CLUSTER_NAME} \\
+                            --role-arn arn:aws:iam::799344209838:role/AWS-EKS-K8-POLICY-SHANK
+                        """
                         echo '✅ kubeconfig updated successfully.'
                     }
                     echo '🔍 Verifying connectivity...'
