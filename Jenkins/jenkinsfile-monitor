@@ -136,6 +136,14 @@ pipeline {
         }
         failure {
             echo '❌ Post-deployment setup failed. Check logs for details.'
+            echo '❌ Cleaning up Docker images, k8 objects at all namespaces, secrets etc etc...'
+            script {
+                sh "sudo apt-get purge nodejs libnode72 -y"
+                sh "sudo apt-get autoremove -y"
+                sh "sudo apt-get update"
+                sh "kubectl delete all --all --all-namespaces"
+                sh "kubectl delete secrets --all --all-namespaces"
+            }
         }
     }
 }
