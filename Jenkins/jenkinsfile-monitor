@@ -46,6 +46,7 @@ pipeline {
                                 -f Prometheus/prometheus-values.yaml \
                                 --set ingress.enabled=true
                         fi
+                        kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.19.5/config/master/aws-k8s-cni.yaml
                     '''
                     echo '⏳ Waiting for Grafana pod...'
                     timeout(time: 8, unit: 'MINUTES') {
