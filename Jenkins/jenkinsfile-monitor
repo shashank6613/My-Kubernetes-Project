@@ -77,6 +77,24 @@ pipeline {
             }
         }
 
+        stage('Commit and Push Ingress Files to Repo') {
+            steps {
+                script {
+                    echo "📝 Configuring git and pushing changes..."
+                    withCredentials([usernamePassword(credentialsId: 'git-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                    sh '''
+                        git config user.email "jenkins@mail.com"
+                        git config user.name "Jenkins CI"
+                        git add Prometheus/prometheus-values.yaml k8s/ingress/stack-ingress.yaml
+                        git commit -m "Update external IP to ${EXTERNAL_IP} in ingress files [ci skip]" || echo "No changes to commit"
+                        git push https://${GIT_USER}:${GIT_PASS}@github.com/shashank6613/My-Kubernetes-Project.git HEAD:master
+                    '''
+                    echo "✅ Changes pushed to repo."
+                   }
+                }
+            }
+        }
+
         stage('Install Prometheus Monitoring Stack') {
             steps {
                 script {
