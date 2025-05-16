@@ -50,7 +50,7 @@ pipeline {
                             set -e
                             eksctl create cluster \
                                 --name ${CLUSTER_NAME} \
-                                --version 1.30 \
+                                --version 1.32 \
                                 --region ${REGION} \
                                 --nodegroup-name stand-work \
                                 --node-type t3.medium \
