@@ -21,53 +21,8 @@ pipeline {
                         echo '✅ kubeconfig updated successfully.'
                     }
                     echo '🔍 Verifying connectivity...'
+                    sh "kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.19.5/config/master/aws-k8s-cni.yaml"
                     sh "kubectl get nodes --context=${CLUSTER_NAME}"
-                }
-            }
-        }
-
-        stage('Install Prometheus Monitoring Stack') {
-            steps {
-                script {
-                    echo '🚀 Installing Prometheus stack via Helm...'
-                    sh '''
-                        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
-                        helm repo update
-                        if helm ls -n monitoring | grep -q prometheus; then
-                            echo "🔄 Upgrading existing Prometheus release..."
-                            helm upgrade prometheus prometheus-community/kube-prometheus-stack \
-                                --namespace monitoring \
-                                -f Prometheus/prometheus-values.yaml \
-                                --set ingress.enabled=true
-                        else
-                            echo "🚀 Installing new Prometheus release..."
-                            helm install prometheus prometheus-community/kube-prometheus-stack \
-                                --namespace monitoring --create-namespace \
-                                -f Prometheus/prometheus-values.yaml \
-                                --set ingress.enabled=true
-                        fi
-                        kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.19.5/config/master/aws-k8s-cni.yaml
-                    '''
-                    echo '⏳ Waiting for Grafana pod...'
-                    timeout(time: 8, unit: 'MINUTES') {
-                        waitUntil {
-                            sh(script: "kubectl get pods -n monitoring -l app.kubernetes.io/name=grafana --field-selector=status.phase=Running | grep grafana", returnStatus: true) == 0
-                        }
-                    }
-                    echo '✅ Grafana running.'
-                }
-            }
-        }
-
-        stage('Configure Grafana Admin Password') {
-            steps {
-                withCredentials([string(credentialsId: GRAFANA_PASSWORD_CRED_ID, variable: 'GRAFANA_PASSWORD')]) {
-                    echo '🔐 Creating Grafana admin-password secret...'
-                    sh '''
-                    kubectl create secret generic grafana-admin-password \
-                    --from-literal=admin-password="${GRAFANA_PASSWORD}" \
-                    -n monitoring --dry-run=client -o yaml | kubectl apply -f -
-                    '''
                 }
             }
         }
@@ -118,6 +73,52 @@ pipeline {
                         sed -i "s|host: <External-IP>|host: '${externalIP}'|" k8s/ingress/stack-ingress.yaml
                     '''
                     echo "✅ External IP updated."
+                }
+            }
+        }
+
+        stage('Install Prometheus Monitoring Stack') {
+            steps {
+                script {
+                    echo '🚀 Installing Prometheus stack via Helm...'
+                    sh '''
+                        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
+                        helm repo update
+                        if helm ls -n monitoring | grep -q prometheus; then
+                            echo "🔄 Upgrading existing Prometheus release..."
+                            helm upgrade prometheus prometheus-community/kube-prometheus-stack \
+                                --namespace monitoring \
+                                -f Prometheus/prometheus-values.yaml \
+                                --set ingress.enabled=true
+                        else
+                            echo "🚀 Installing new Prometheus release..."
+                            helm install prometheus prometheus-community/kube-prometheus-stack \
+                                --namespace monitoring --create-namespace \
+                                -f Prometheus/prometheus-values.yaml \
+                                --set ingress.enabled=true
+                        fi
+                        kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.19.5/config/master/aws-k8s-cni.yaml
+                    '''
+                    echo '⏳ Waiting for Grafana pod...'
+                    timeout(time: 8, unit: 'MINUTES') {
+                        waitUntil {
+                            sh(script: "kubectl get pods -n monitoring -l app.kubernetes.io/name=grafana --field-selector=status.phase=Running | grep grafana", returnStatus: true) == 0
+                        }
+                    }
+                    echo '✅ Grafana running.'
+                }
+            }
+        }
+
+        stage('Configure Grafana Admin Password') {
+            steps {
+                withCredentials([string(credentialsId: GRAFANA_PASSWORD_CRED_ID, variable: 'GRAFANA_PASSWORD')]) {
+                    echo '🔐 Creating Grafana admin-password secret...'
+                    sh '''
+                    kubectl create secret generic grafana-admin-password \
+                    --from-literal=admin-password="${GRAFANA_PASSWORD}" \
+                    -n monitoring --dry-run=client -o yaml | kubectl apply -f -
+                    '''
                 }
             }
         }
