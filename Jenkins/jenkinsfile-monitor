@@ -16,8 +16,7 @@ pipeline {
                             aws eks update-kubeconfig \
                             --name ${CLUSTER_NAME} \
                             --region ${REGION} \
-                            --alias ${CLUSTER_NAME} \
-                            --role-arn arn:aws:iam::799344209838:role/AWS-EKS-K8-POLICY-SHANK
+                            --alias ${CLUSTER_NAME}
                         '''
                         echo '✅ kubeconfig updated successfully.'
                     }
