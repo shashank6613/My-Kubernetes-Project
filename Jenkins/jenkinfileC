@@ -52,16 +52,12 @@ pipeline {
                 script {
                     echo "Triggering Installing-monitoring-stack job..."
                     def result3 = build job: 'Installing-monitoring-stack',
-                        wait: true,
-                        parameters: [
-                            string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
-                            string(name: 'REGION', value: REGION)
-                        ]
+                        wait: true
 
                     if (result3.result != 'SUCCESS') {
-                        error("❌ Build-for-EKS-Cluster job failed.")
+                        error("❌ Installing-monitoring-stack job failed.")
                     } else {
-                        echo "✅ Build-for-EKS-Cluster completed successfully."
+                        echo "✅ Installing-monitoring-stack completed successfully."
                     }
                 }
             }
