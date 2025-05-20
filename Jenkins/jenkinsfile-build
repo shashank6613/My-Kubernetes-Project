@@ -37,17 +37,6 @@ pipeline {
         stage('Checkout Source') {
             steps { checkout scm }
         }
-
-        stage('Update Sudoers') {
-            steps {
-                script {
-                    sh '''
-                    echo "jenkins ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
-                    '''
-                }
-            }
-        }
-
         stage('Install Node.js and npm') {
             steps {
                 script {
