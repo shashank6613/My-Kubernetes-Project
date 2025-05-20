@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: <External-IP>  #change this from the command run above as "kubectl get svc -n ingress-nginx"
+    - host: ''  #change this from the command run above as "kubectl get svc -n ingress-nginx"
       http:
         paths:
           - path: /prometheus
