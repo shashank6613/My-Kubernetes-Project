@@ -70,7 +70,6 @@ pipeline {
                     echo "📄 Updating prometheus-values.yaml with External IP..."
                     sh '''
                         sed -i "s|host: '.*'|host: '${externalIP}'|" Prometheus/prometheus-values.yaml
-                        sed -i "s|host: <External-IP>|host: '${externalIP}'|" k8s/ingress/stack-ingress.yaml
                     '''
                     echo "✅ External IP updated."
                 }
