@@ -7,7 +7,6 @@ alertmanager:
 grafana:
   service:
     type: ClusterIP
-grafana:
   adminPasswordKey: admin-password
   adminPasswordSecret: grafana-admin-password
   resources:
