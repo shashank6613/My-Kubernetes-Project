@@ -43,7 +43,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: frontend  # Your frontend service name
+                name: frontend-service  # Your frontend service name
                 port:
                   number: 80   # Port your frontend service exposes
 
