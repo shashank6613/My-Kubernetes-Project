@@ -40,7 +40,7 @@ pipeline {
                           --set controller.publishService.enabled=true
                     '''
                     echo '⏳ Waiting for LoadBalancer IP...'
-                    timeout(time: 5, unit: 'MINUTES') {
+                    timeout(time: 8, unit: 'MINUTES') {
                         waitUntil {
                             def lb = sh(script: "kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
                             echo "LoadBalancer address: ${lb}"
