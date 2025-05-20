@@ -1,12 +1,20 @@
 server:
   service:
     type: ClusterIP
+  ingress:
+    enabled: false
+    
 alertmanager:
   service:
     type: ClusterIP
+  ingress:
+    enabled: false
+    
 grafana:
   service:
     type: ClusterIP
+  ingress:
+    enabled: false
   adminPasswordKey: admin-password
   adminPasswordSecret: grafana-admin-password
   resources:
