@@ -54,27 +54,41 @@ pipeline {
 
         stage('Update External IP in Ingress Files') {
             steps {
-                script {
-                    echo "🔍 Fetching External IP from NGINX Ingress..."
-                    def externalIP = ""
-                    timeout(time: 10, unit: 'MINUTES') {
-                        waitUntil {
-                            externalIP = sh(
-                                script: "kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}{.status.loadBalancer.ingress[0].ip}'",
-                                returnStdout: true
-                            ).trim()
-                            echo "  ➡️  Current LoadBalancer external IP/hostname: ${externalIP}"
-                            return externalIP != ""
-                        }
-                    }
-                    echo "📄 Updating prometheus-values.yaml with External IP..."
-                    sh '''
-                        sed -i "s|host: '.*'|host: '${externalIP}'|" Prometheus/prometheus-values.yaml
-                    '''
-                    echo "✅ External IP updated."
+              script {
+                echo "🔍 Fetching External IP from NGINX Ingress..."
+                def externalIP = sh(
+                  script: "kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'",
+                  returnStdout: true
+                ).trim()
+
+                if (!externalIP) {
+                  echo "Hostname not found, trying IP..."
+                  externalIP = sh(
+                    script: "kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}'",
+                    returnStdout: true
+                  ).trim()
                 }
+
+                if (!externalIP) {
+                  error "❌ External IP or hostname not found for ingress-nginx-controller service!"
+                }
+
+                echo "➡️ Current LoadBalancer external IP/hostname: ${externalIP}"
+
+                echo "📄 Updating prometheus-values.yaml with External IP..."
+
+                sh """
+                  sed -i "s|host: .*|host: ${externalIP}|" Prometheus/prometheus-values.yaml
+                """
+
+                echo "✅ External IP updated."
+
+                echo "📄 Updated prometheus-values.yaml contents:"
+                sh "cat Prometheus/prometheus-values.yaml"
+              }
             }
         }
+
 
         stage('Commit and Push Ingress Files to Repo') {
             steps {
