@@ -77,8 +77,6 @@ pipeline {
                         """
                         echo '✅ kubeconfig updated successfully.'
                     }
-                    echo '🔍 Verifying connectivity...'
-                    sh "kubectl get nodes"
                 }
             }
         }
