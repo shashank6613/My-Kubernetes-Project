@@ -79,7 +79,7 @@ pipeline {
                         echo '✅ kubeconfig updated successfully.'
                     }
                     echo '🔍 Verifying connectivity...'
-                    sh "kubectl get nodes --context=${CLUSTER_NAME}"
+                    sh "kubectl get nodes"
                 }
             }
         }
