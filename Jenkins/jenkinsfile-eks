@@ -5,6 +5,8 @@ pipeline {
         AWS_CREDENTIALS_ID = 'aws-creds'
         CLUSTER_NAME = 'app-clus'
         REGION = 'us-west-2'
+        PATH = "/usr/local/bin:/usr/bin:/bin:$PATH"
+        HOME = "/var/lib/jenkins"  // Adjust if different
     }
 
     stages {
