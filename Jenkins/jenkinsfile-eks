@@ -68,7 +68,7 @@ pipeline {
             steps {
                 script {
                     echo "🔄 Updating kubeconfig for EKS cluster '${CLUSTER_NAME}'..."
-                    withAWS(credentials: 'aws-creds', region: REGION) {
+                    withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: ${REGION}) {
                         sh """
                             aws eks update-kubeconfig \\
                             --name ${CLUSTER_NAME} \\
