@@ -68,7 +68,7 @@ pipeline {
             steps {
                 script {
                     echo "🔄 Updating kubeconfig for EKS cluster '${CLUSTER_NAME}'..."
-                    withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: ${REGION}) {
+                    withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: "${REGION}") {
                         sh """
                             aws eks update-kubeconfig \\
                             --name ${CLUSTER_NAME} \\
@@ -76,6 +76,10 @@ pipeline {
                             --alias ${CLUSTER_NAME}
                         """
                         echo '✅ kubeconfig updated successfully.'
+
+                        echo '✅ Varifying connectivity.'
+
+                        sh "kubectl get nodes"
                     }
                 }
             }
@@ -84,17 +88,20 @@ pipeline {
         stage('Wait for Node Readiness') {
             steps {
                 script {
+                    withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: "${REGION}") {
                     echo "⏳ Waiting for EKS nodes to become ready..."
-                    timeout(time: 10, unit: 'MINUTES') {
-                        waitUntil {
-                            def readyNodes = sh(
-                                script: "kubectl get nodes --no-headers | grep 'Ready' | wc -l",
-                                returnStdout: true
-                            ).trim().toInteger()
-                            echo "Nodes Ready: ${readyNodes}"
-                            return readyNodes > 0
+                        timeout(time: 10, unit: 'MINUTES') {
+                            waitUntil {
+                                def readyNodes = sh(
+                                    script: "kubectl get nodes --no-headers | grep 'Ready' | wc -l",
+                                    returnStdout: true
+                                ).trim().toInteger()
+                                echo "Nodes Ready: ${readyNodes}"
+                                return readyNodes > 0
+                            }
                         }
                     }
+              
                     echo "✅ EKS nodes are ready."
                 }
             }
