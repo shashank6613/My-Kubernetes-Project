@@ -112,13 +112,26 @@ pipeline {
                 script {
                     echo "🚀 Installing ArgoCD using Helm..."
                     sh """
-                        kubectl create namespace argocd || true
-                        helm repo add argo https://argoproj.github.io/argo-helm
+                         # Check if namespace 'argocd' exists
+                        if ! kubectl get namespace argocd >/dev/null 2>&1; then
+                            echo "📦 Creating 'argocd' namespace..."
+                            ubectl create namespace argocd
+                        else
+                            echo "✅ Namespace 'argocd' already exists. Skipping creation."
+                        fi
+                        
+                        helm repo add argo https://argoproj.github.io/argo-helm || true
                         helm repo update
+
+                        if helm status argocd -n argocd >/dev/null 2>&1; then
+                            echo "✅ ArgoCD is already installed in namespace 'argocd'. Skipping Helm install."
+                        else
+                            echo "🚀 Installing ArgoCD with Helm..."
                         helm install argocd argo/argo-cd \
                             --namespace argocd \
                             --set server.service.type=ClusterIP \
                             --set installCRDs=true
+                        fi
                     """
                 }
             }
