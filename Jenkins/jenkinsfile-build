@@ -19,7 +19,7 @@ pipeline {
                 script {
                     echo "🔍 Checking if EKS cluster '${CLUSTER_NAME}' is ACTIVE..."
                     withAWS(credentials: 'aws-creds', region: REGION) {
-                        timeout(time: 15, unit: 'MINUTES') {
+                        timeout(time: 5, unit: 'MINUTES') {
                             waitUntil {
                                 def status = sh(
                                     script: "aws eks describe-cluster --name ${CLUSTER_NAME} --region ${REGION} --query 'cluster.status' --output text",
