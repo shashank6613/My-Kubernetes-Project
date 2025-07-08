@@ -57,7 +57,6 @@ pipeline {
             steps {
               script {
                 echo "🔍 Fetching External IP from NGINX Ingress..."
-                env.EXTERNAL_IP = externalIP
                 def externalIP = sh(
                   script: "kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'",
                   returnStdout: true
@@ -76,6 +75,7 @@ pipeline {
                 }
 
                 echo "➡️ Current LoadBalancer external IP/hostname: ${externalIP}"
+                env.EXTERNAL_IP = externalIP
 
                 echo "📄 Updating prometheus-values.yaml with External IP..."
 
