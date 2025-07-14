@@ -44,7 +44,7 @@ pipeline {
             }
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
-                  sh 'eksctl create cluster -f cluster-config.yaml'
+                  sh 'eksctl create cluster -f /Script/cluster-config.yaml'
                 }
             }
         }
