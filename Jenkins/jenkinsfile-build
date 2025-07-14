@@ -87,15 +87,28 @@ pipeline {
                     def buildId = BUILD_NUMBER
                     def feImg = "${FRONTEND_IMAGE_NAME}:${buildId}"
                     def beImg = "${BACKEND_IMAGE_NAME}:${buildId}"
+
                     withCredentials([usernamePassword(credentialsId: 'git-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
                         sh """
+                            echo "🛠 Updating image tags in deployment YAMLs..."
                             sed -i 's|image: .*linkproj-fe:.*|image: ${feImg}|' ${FRONTEND_DEPLOYMENT_FILE}
                             sed -i 's|image: .*linkproj-be:.*|image: ${beImg}|' ${BACKEND_DEPLOYMENT_FILE}
+
+                            echo "🔧 Configuring Git..."
                             git config user.email 'jenkins@mail.com'
                             git config user.name 'Jenkins CI'
+
+                            echo "📦 Staging files..."
                             git add ${FRONTEND_DEPLOYMENT_FILE} ${BACKEND_DEPLOYMENT_FILE}
-                            git commit -m 'Update image tags to build ${buildId}'
-                            git push https://${GIT_USER}:${GIT_PASS}@github.com/shashank6613/My-Kubernetes-Project.git HEAD:master
+
+                            echo "📝 Committing (even if no changes)..."
+                            git commit --allow-empty -m 'Update image tags to build ${buildId}' || true
+
+                            echo "🔐 Updating remote URL with credentials safely..."
+                            git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/shashank6613/My-Kubernetes-Project.git
+
+                            echo "🚀 Pushing changes..."
+                            git push origin HEAD:master
                         """
                     }
                 }
