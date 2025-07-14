@@ -115,7 +115,7 @@ pipeline {
                          # Check if namespace 'argocd' exists
                         if ! kubectl get namespace argocd >/dev/null 2>&1; then
                             echo "📦 Creating 'argocd' namespace..."
-                            ubectl create namespace argocd
+                            kubectl create namespace argocd
                         else
                             echo "✅ Namespace 'argocd' already exists. Skipping creation."
                         fi
