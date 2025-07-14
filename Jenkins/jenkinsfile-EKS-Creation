@@ -62,8 +62,6 @@ pipeline {
                         """
                         echo '✅ kubeconfig updated successfully.'
                     }
-                    echo '🔍 Verifying connectivity...'
-                    sh "kubectl get nodes --context=${CLUSTER_NAME}"
                 }
             }
         }
@@ -94,6 +92,9 @@ pipeline {
                         echo " Applying aws-auth.yaml from Git repo..."
                         kubectl apply -f Script/aws-auth.yaml
                         echo " aws-auth ConfigMap applied successfully."
+
+                        echo '🔍 Verifying connectivity...'
+                        sh "kubectl get nodes --context=${CLUSTER_NAME}"
                     '''
                 }
             }
