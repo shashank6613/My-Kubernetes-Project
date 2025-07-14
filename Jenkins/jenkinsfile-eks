@@ -143,10 +143,14 @@ pipeline {
         stage('Apply ArgoCD Application File') {
             steps {
                 script {
-                    echo "🚀 Applying ArgoCD Application manifest..."
-                    sh """
-                        kubectl apply -f ArgoCD-config/argo-app.yaml -n argocd
-                    """
+                    withAWS(credentials: 'aws-creds', region: REGION) {
+                        echo "🚀 Applying ArgoCD Application manifest..."
+                        sh '''
+                            # Apply the Application manifest to ArgoCD
+                            kubectl apply -f ArgoCD-config/argo-app.yaml -n argocd --validate=false
+                        '''
+                        echo "✅ ArgoCD Application has been applied."
+                    }
                 }
             }
         }
@@ -155,14 +159,16 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'db-secrets-file', variable: 'DB_SECRETS_FILE')]) {
                     script {
-                        echo "🔐 Creating Kubernetes secret for database credentials..."
-                        sh """
-                            kubectl create secret generic db-credentials \
-                              --from-env-file=${DB_SECRETS_FILE} \
-                              -n default
-                        """
+                        withAWS(credentials: 'aws-creds', region: REGION) {
+                            echo "🔐 Creating Kubernetes secret for database credentials..."
+                            sh """
+                                kubectl create secret generic db-credentials \
+                                  --from-env-file=${DB_SECRETS_FILE} \
+                                  -n default --dry-run=client -o yaml | kubectl apply -f -
+                            """
+                        }
                     }
-                }
+               }
             }
         }
     }
