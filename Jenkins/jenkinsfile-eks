@@ -110,33 +110,36 @@ pipeline {
         stage('Install ArgoCD') {
             steps {
                 script {
-                    echo "🚀 Installing ArgoCD using Helm..."
-                    sh """
-                         # Check if namespace 'argocd' exists
-                        if ! kubectl get namespace argocd >/dev/null 2>&1; then
-                            echo "📦 Creating 'argocd' namespace..."
-                            kubectl create namespace argocd
-                        else
-                            echo "✅ Namespace 'argocd' already exists. Skipping creation."
-                        fi
-                        
-                        helm repo add argo https://argoproj.github.io/argo-helm || true
-                        helm repo update
+                    withAWS(credentials: 'aws-creds', region: REGION) {
+                        echo "🚀 Installing ArgoCD using Helm..."
+                        sh """
+                            # Check if namespace 'argocd' exists
+                            if ! kubectl get namespace argocd >/dev/null 2>&1; then
+                                echo "📦 Creating 'argocd' namespace..."
+                                kubectl create namespace argocd
+                            else
+                                echo "✅ Namespace 'argocd' already exists. Skipping creation."
+                            fi
 
-                        if helm status argocd -n argocd >/dev/null 2>&1; then
-                            echo "✅ ArgoCD is already installed in namespace 'argocd'. Skipping Helm install."
-                        else
-                            echo "🚀 Installing ArgoCD with Helm..."
-                        helm install argocd argo/argo-cd \
-                            --namespace argocd \
-                            --set server.service.type=ClusterIP \
-                            --set installCRDs=true
-                        fi
-                    """
+                            # Add and update ArgoCD Helm repo
+                            helm repo add argo https://argoproj.github.io/argo-helm || true
+                            helm repo update
+
+                            # Check if ArgoCD is already installed
+                            if helm status argocd -n argocd >/dev/null 2>&1; then
+                                echo "✅ ArgoCD is already installed in namespace 'argocd'. Skipping Helm install."
+                            else
+                               echo "🚀 Installing ArgoCD with Helm..."
+                                helm install argocd argo/argo-cd \\
+                                    --namespace argocd \\
+                                    --set server.service.type=ClusterIP \\
+                                    --set installCRDs=true
+                            fi
+                        """
+                    }
                 }
             }
         }
-
         stage('Apply ArgoCD Application File') {
             steps {
                 script {
