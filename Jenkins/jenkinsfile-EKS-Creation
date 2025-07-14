@@ -88,6 +88,17 @@ pipeline {
             }
         }
 
+        stage('Apply aws-auth ConfigMap') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    sh '''
+                        echo " Applying aws-auth.yaml from Git repo..."
+                        kubectl apply -f Script/aws-auth.yaml
+                        echo " aws-auth ConfigMap applied successfully."
+                    '''
+                }
+            }
+        }
         stage('Install ArgoCD') {
             steps {
                 script {
