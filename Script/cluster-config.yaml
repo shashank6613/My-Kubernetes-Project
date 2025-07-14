@@ -16,15 +16,3 @@ nodeGroups:
 
 iam:
   withOIDC: true
-
-awsAuth:
-  additionalRoles:
-    - rolearn: arn:aws:iam::799344209838:role/Project-Role-K8
-      username: jenkins
-      groups:
-        - system:masters
-  additionalUsers:
-    - userarn: arn:aws:iam::799344209838:user/anshu
-      username: anshu
-      groups:
-        - system:masters
