@@ -25,6 +25,13 @@ sudo systemctl enable docker
 sudo systemctl start docker
 sudo usermod -aG docker jenkins
 
+echo "--- Installing AWS CLI v2 ---"
+apt install -y unzip
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+rm -rf awscliv2.zip aws
+
 echo "--- Installing kubectl ---"
 KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
 curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
