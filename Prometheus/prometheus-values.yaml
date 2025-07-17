@@ -42,7 +42,7 @@ ingress:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
-    - host: a2883d6016bc54abb926d46540287e84-1220900108.us-west-2.elb.amazonaws.com
+    - host: a3fc926b8de7a410fa94bd3b0d640115-1852401113.us-west-2.elb.amazonaws.com
       paths:
         - path: /prometheus(/|$)(.*)
           pathType: Prefix
