@@ -1,5 +1,5 @@
 #!/bin/bash
-exec > /var/log/ec2-userdata.log 2>&1
+exec > /var/log/toolVersion-userdata.log 2>&1
 set -e
 
 echo "----------------------------------------"
