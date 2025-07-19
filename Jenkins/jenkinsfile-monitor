@@ -82,13 +82,13 @@ pipeline {
                                 helm upgrade prometheus prometheus-community/kube-prometheus-stack \
                                     --namespace monitoring \
                                     -f Prometheus/prometheus-values.yaml \
-                                    --set ingress.enabled=true
+                                    --set ingress.enabled=false
                             else
                                 echo "🚀 Installing new Prometheus release..."
                                 helm install prometheus prometheus-community/kube-prometheus-stack \
                                     --namespace monitoring --create-namespace \
                                     -f Prometheus/prometheus-values.yaml \
-                                    --set ingress.enabled=true
+                                    --set ingress.enabled=false
                             fi
                         '''
 
