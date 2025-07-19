@@ -1,18 +1,24 @@
+# Ensure the main Prometheus server is exposed via ClusterIP
 server:
   service:
     type: ClusterIP
+  # Disable Ingress for the Prometheus server component directly
   ingress:
     enabled: false
-    
+
+# Ensure Alertmanager is exposed via ClusterIP
 alertmanager:
   service:
     type: ClusterIP
+  # Disable Ingress for the Alertmanager component directly
   ingress:
     enabled: false
-    
+
+# Ensure Grafana is exposed via ClusterIP
 grafana:
   service:
     type: ClusterIP
+  # Disable Ingress for the Grafana component directly
   ingress:
     enabled: false
   adminPasswordKey: admin-password
@@ -25,50 +31,14 @@ grafana:
       memory: "256Mi"
       cpu: "200m"
 
+# ServiceMonitors are fine as they are, they define how Prometheus scrapes
 serviceMonitors:
   - name: backend-metrics
-    namespace: default
+    namespace: default # Ensure this matches the namespace of your backend app
     selector:
       matchLabels:
         app: backend
     endpoints:
-      - port: http
+      - port: http # This should match the name of the port in your backend-service
         path: /metrics
         interval: 15s
-
-ingress:
-  enabled: true
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-  hosts:
-    - host: a3fc926b8de7a410fa94bd3b0d640115-1852401113.us-west-2.elb.amazonaws.com
-      paths:
-        - path: /prometheus(/|$)(.*)
-          pathType: Prefix
-          backend:
-            service:
-              name: prometheus-server
-              port:
-                number: 9090
-        - path: /alertmanager(/|$)(.*)
-          pathType: Prefix
-          backend:
-            service:
-              name: alertmanager
-              port:
-                number: 9093
-        - path: /grafana(/|$)(.*)
-          pathType: Prefix
-          backend:
-            service:
-              name: grafana
-              port:
-                number: 3000
-        - path: /argocd(/|$)(.*)
-          pathType: Prefix
-          backend:
-            service:
-              name: argocd-server
-              port:
-                number: 80
