@@ -66,12 +66,6 @@ pipeline {
                         env.EXTERNAL_IP = externalIP
                         echo "➡️ Current LoadBalancer external IP/hostname: ${externalIP}"
 
-                        echo "📄 Updating prometheus-values.yaml with External IP..."
-                        sh """
-                            sed -i "s|host: .*|host: ${externalIP}|" Prometheus/prometheus-values.yaml
-                            cat Prometheus/prometheus-values.yaml
-                        """
-
                         // Install Prometheus
                         echo '🚀 Installing Prometheus stack via Helm...'
                         sh '''
